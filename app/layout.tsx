@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { QueryProvider } from '@/lib/query-provider'
 import './globals.css'
 
 const geist = Geist({ 
@@ -63,7 +64,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
-        {children}
+        <QueryProvider>
+          {children}
+        </QueryProvider>
         <Analytics />
       </body>
     </html>

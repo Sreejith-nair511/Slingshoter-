@@ -38,9 +38,13 @@ Trust Calibration Layer is an enterprise-grade AI governance platform that quant
 
 ## Technology Stack
 
-- **Framework**: Next.js 16.1.6 (App Router)
+- **Framework**: Next.js 16.1.6 (App Router with Server Actions)
 - **Runtime**: React 19.2.4
 - **Language**: TypeScript 5.7.3
+- **Database**: PostgreSQL with Prisma ORM 7.4.1
+- **AI/ML**: OpenAI API (GPT-4o, text-embedding-3-small)
+- **State Management**: Zustand 5.0.11 + React Query 5.90.21
+- **Validation**: Zod 3.25.76
 - **Styling**: Tailwind CSS 4.2.0
 - **UI Components**: Radix UI primitives
 - **Charts**: Recharts 2.15.0
@@ -54,13 +58,15 @@ Trust Calibration Layer is an enterprise-grade AI governance platform that quant
 
 - Node.js 18.x or higher
 - pnpm 8.x or higher
+- PostgreSQL database (local, Docker, or cloud)
+- OpenAI API key
 
-### Installation
+### Quick Start
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/Sreejith-nair511/Slingshoter.git
-cd Slingshoter
+git clone https://github.com/Sreejith-nair511/Slingshoter-.git
+cd Slingshoter-
 ```
 
 2. Install dependencies:
@@ -68,15 +74,34 @@ cd Slingshoter
 pnpm install
 ```
 
-3. Run the development server:
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/trustcalib"
+OPENAI_API_KEY="sk-your-openai-api-key"
+```
+
+4. Initialize the database:
+```bash
+pnpm db:generate
+pnpm db:migrate
+```
+
+5. Run the development server:
 ```bash
 pnpm dev
 ```
 
-4. Open your browser and navigate to:
+6. Open your browser and navigate to:
 ```
 http://localhost:3000
 ```
+
+For detailed setup instructions, see [SETUP.md](SETUP.md).
 
 ### Build for Production
 
@@ -84,6 +109,40 @@ http://localhost:3000
 pnpm build
 pnpm start
 ```
+
+## System Architecture
+
+### Real Backend Integration
+
+This is a fully functional system with:
+
+- **Real AI Integration**: OpenAI GPT-4o for query analysis and claim extraction
+- **Database Persistence**: PostgreSQL via Prisma ORM
+- **Verification Engine**: Embedding-based claim verification with vector similarity
+- **Trust Calibration**: Real-time deviation calculation and risk assessment
+- **Notification System**: Automated alerts based on configurable thresholds
+- **Audit Logging**: Complete trail of all system operations
+
+### Data Flow
+
+```
+User Query → OpenAI API → Claim Extraction → Verification Layer → 
+Trust Metrics → Database → Dashboard Updates → Notifications
+```
+
+### Technology Stack
+
+- **Framework**: Next.js 16.1.6 (App Router with Server Actions)
+- **Runtime**: React 19.2.4
+- **Language**: TypeScript 5.7.3
+- **Database**: PostgreSQL with Prisma ORM
+- **AI**: OpenAI API (GPT-4o, text-embedding-3-small)
+- **State Management**: Zustand + React Query
+- **Validation**: Zod
+- **Styling**: Tailwind CSS 4.2.0
+- **UI Components**: Radix UI primitives
+- **Charts**: Recharts 2.15.0
+- **Analytics**: Vercel Analytics
 
 ## Project Structure
 
@@ -198,37 +257,123 @@ Set automated responses for trust violations:
 
 ## API Integration
 
-### Submit Model Output
+### Analyze Query (Real AI Processing)
 
 ```typescript
-POST /api/v1/verify
+POST /api/analyze
 Content-Type: application/json
-Authorization: Bearer YOUR_API_KEY
 
 {
-  "model_id": "gpt-4-classifier",
-  "output": "Predicted class: fraud",
-  "confidence": 0.92,
-  "metadata": {
-    "timestamp": "2024-02-23T14:32:45Z",
-    "request_id": "req_abc123"
+  "query": "What is the height of the Eiffel Tower?",
+  "model": "gpt-4o"
+}
+
+Response:
+{
+  "success": true,
+  "data": {
+    "id": "clx...",
+    "query": "What is the height of the Eiffel Tower?",
+    "output": "The Eiffel Tower is 330 meters tall...",
+    "confidenceScore": 95,
+    "reliabilityScore": 92,
+    "trustDeviation": 3,
+    "calibrationIndex": 94,
+    "calibrationLevel": "balanced",
+    "riskLevel": "low",
+    "verificationLatency": 1250,
+    "claims": [
+      {
+        "text": "The Eiffel Tower is 330 meters tall",
+        "confidence": 95,
+        "reliability": 92,
+        "verified": true,
+        "evidence": ["..."]
+      }
+    ]
   }
 }
 ```
 
-### Retrieve Results
+### Get System Metrics
 
 ```typescript
-GET /api/v1/results?request_id=req_abc123
-Authorization: Bearer YOUR_API_KEY
+GET /api/metrics?timeframe=24h
+
+Response:
+{
+  "success": true,
+  "data": {
+    "summary": {
+      "totalAnalyses": 42,
+      "avgTrustDeviation": 8.3,
+      "avgVerificationLatency": 1150,
+      "avgCalibrationIndex": 91.7,
+      "avgConfidence": 87.5,
+      "avgReliability": 84.2
+    },
+    "trend": [...],
+    "distribution": {
+      "balanced": 35,
+      "moderate": 5,
+      "high": 2,
+      "critical": 0
+    }
+  }
+}
 ```
 
-### Get Metrics
+### Get Notifications
 
 ```typescript
-GET /api/v1/metrics?model_id=gpt-4-classifier&timeframe=24h
-Authorization: Bearer YOUR_API_KEY
+GET /api/notifications?unreadOnly=true
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "id": "clx...",
+      "type": "deviation",
+      "severity": "warning",
+      "message": "Trust deviation (18.5%) exceeds threshold (15%)",
+      "read": false,
+      "createdAt": "2024-02-23T14:32:45Z"
+    }
+  ]
+}
 ```
+
+### Update Settings
+
+```typescript
+PUT /api/settings
+Content-Type: application/json
+
+{
+  "deviationThreshold": 15.0,
+  "reliabilityMinimum": 70.0,
+  "confidenceMinimum": 60.0
+}
+```
+
+### Get Audit Logs
+
+```typescript
+GET /api/audit-logs?limit=50&severity=error
+```
+
+## Database Schema
+
+The system uses PostgreSQL with the following schema:
+
+- **Analysis**: Stores each AI query analysis with metrics
+- **Claim**: Individual factual claims extracted from outputs
+- **Notification**: System alerts and warnings
+- **Settings**: Configurable thresholds and parameters
+- **AuditLog**: Complete audit trail of system operations
+
+See `prisma/schema.prisma` for the complete schema definition.
 
 ## Performance Specifications
 

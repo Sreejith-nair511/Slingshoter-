@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Analysis {
+  id                   String   @id @default(cuid())
+  query                String
+  model                String
+  output               String   @db.Text
+  confidenceScore      Float
+  reliabilityScore     Float
+  trustDeviation       Float
+  calibrationIndex     Float
+  verificationLatency  Int      // in milliseconds
+  createdAt            DateTime @default(now())
+  
+  claims               Claim[]
+  
+  @@index([createdAt])
+  @@index([trustDeviation])
+}
+
+model Claim {
+  id           String   @id @default(cuid())
+  analysisId   String
+  text         String   @db.Text
+  confidence   Float
+  reliability  Float
+  verified     Boolean
+  createdAt    DateTime @default(now())
+  
+  analysis     Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  
+  @@index([analysisId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // 'deviation', 'reliability', 'performance'
+  severity  String   // 'critical', 'warning', 'info'
+  message   String   @db.Text
+  metadata  Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([read, createdAt])
+  @@index([severity])
+}
+
+model Settings {
+  id                  String   @id @default(cuid())
+  deviationThreshold  Float    @default(15.0)
+  reliabilityMinimum  Float    @default(70.0)
+  confidenceMinimum   Float    @default(60.0)
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+}
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  action          String
+  userId          String?
+  resource        String
+  metadata        Json?
+  severity        String   // 'info', 'warning', 'error', 'success'
+  createdAt       DateTime @default(now())
+  
+  @@index([createdAt])
+  @@index([action])
+}
