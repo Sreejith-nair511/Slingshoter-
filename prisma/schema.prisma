@@ -38,8 +38,21 @@ model Claim {
   createdAt    DateTime @default(now())
   
   analysis     Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  embedding    Embedding?
   
   @@index([analysisId])
+}
+
+model Embedding {
+  id        String   @id @default(cuid())
+  claimId   String   @unique
+  vector    Json     // Store as JSON array
+  dimension Int      @default(384)
+  createdAt DateTime @default(now())
+  
+  claim     Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  
+  @@index([claimId])
 }
 
 model Notification {
