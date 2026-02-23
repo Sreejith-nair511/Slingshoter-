@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { ClerkProvider } from '@clerk/nextjs'
 import { QueryProvider } from '@/lib/query-provider'
 import './globals.css'
 
@@ -62,13 +63,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
-        <QueryProvider>
-          {children}
-        </QueryProvider>
-        <Analytics />
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
+          <QueryProvider>
+            {children}
+          </QueryProvider>
+          <Analytics />
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }
