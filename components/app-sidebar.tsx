@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
-import { BarChart3, Settings, LogOut, LayoutDashboard, TrendingUp, AlertCircle, Users, GitBranch, HelpCircle } from 'lucide-react';
+import { useUser, useClerk } from '@clerk/nextjs';
+import { BarChart3, Settings, LogOut, LayoutDashboard, TrendingUp, AlertCircle, Users, GitBranch } from 'lucide-react';
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user } = useUser();
+  const { signOut } = useClerk();
 
   const navItems = [
     { label: 'Dashboard', href: '/app', icon: LayoutDashboard },
@@ -35,12 +36,12 @@ export function AppSidebar() {
         {/* User Info */}
         {user && (
           <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
-            <p className="text-sm font-medium text-foreground">{user.name}</p>
+            <p className="text-sm font-medium text-foreground">{user.fullName || 'User'}</p>
             <p className="text-xs mt-1" style={{ color: 'var(--muted-foreground)' }}>
-              {user.organization}
+              {user.emailAddresses[0]?.emailAddress}
             </p>
             <span className="inline-block mt-2 px-2 py-1 rounded text-xs font-medium" style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-              {user.role}
+              {(user.publicMetadata?.role as string) || 'Student'}
             </span>
           </div>
         )}
@@ -69,12 +70,8 @@ export function AppSidebar() {
 
         {/* Footer */}
         <div className="p-4 border-t space-y-2" style={{ borderColor: 'var(--border)' }}>
-          <button className="flex items-center gap-3 w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors" style={{ color: 'var(--muted-foreground)' }}>
-            <HelpCircle size={20} />
-            <span>Help & Support</span>
-          </button>
           <button
-            onClick={logout}
+            onClick={() => signOut()}
             className="flex items-center gap-3 w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:opacity-75"
             style={{ color: 'var(--foreground)' }}
           >

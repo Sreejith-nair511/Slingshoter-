@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 
 export function PublicNavbar() {
   const pathname = usePathname();
@@ -62,15 +63,36 @@ export function PublicNavbar() {
 
         {/* CTA Buttons */}
         <div className="flex items-center gap-4">
-          <Link
-            href="/login"
-            className="text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
-          >
-            Sign In
-          </Link>
-          <button className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all">
-            Request Demo
-          </button>
+          <SignedOut>
+            <Link
+              href="/sign-in"
+              className="text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/sign-up"
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all"
+            >
+              Get Started
+            </Link>
+          </SignedOut>
+          <SignedIn>
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-all"
+            >
+              Dashboard
+            </Link>
+            <UserButton 
+              afterSignOutUrl="/"
+              appearance={{
+                elements: {
+                  avatarBox: "w-8 h-8"
+                }
+              }}
+            />
+          </SignedIn>
         </div>
       </div>
     </header>
