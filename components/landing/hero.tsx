@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Send } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, ComposedChart } from 'recharts';
 
 // Mini chart data
@@ -42,10 +44,18 @@ const evidenceData = [
 
 export function Hero() {
   const [mounted, setMounted] = useState(false);
+  const [query, setQuery] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleQuickAnalyze = () => {
+    if (query.trim()) {
+      router.push(`/dashboard?q=${encodeURIComponent(query)}`);
+    }
+  };
 
   if (!mounted) {
     return null;
@@ -73,10 +83,38 @@ export function Hero() {
                 Monitor confidence mismatches. Verify claims. Enforce calibrated decision boundaries.
               </p>
 
+              {/* Mini Analysis Tool */}
+              <div className="pt-4">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                  <div className="text-xs text-zinc-400 mb-2">Try it now:</div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleQuickAnalyze()}
+                      placeholder="Enter a query to analyze..."
+                      className="flex-1 px-4 py-2 bg-zinc-800 text-white rounded border border-zinc-700 focus:border-blue-500 focus:outline-none text-sm"
+                    />
+                    <button
+                      onClick={handleQuickAnalyze}
+                      disabled={!query.trim()}
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                    >
+                      <Send size={14} />
+                      Analyze
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 text-sm">
-                  Request Demo
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 text-sm"
+                >
+                  Try It Free →
                 </button>
                 <button className="px-6 py-3 border border-zinc-700 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 font-medium rounded-lg transition-all duration-200 text-sm">
                   View Technical Docs

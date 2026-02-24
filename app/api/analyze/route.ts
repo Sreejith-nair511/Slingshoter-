@@ -179,14 +179,18 @@ export async function POST(request: NextRequest) {
     console.error('Analysis Error:', error)
     
     // Log error to audit
-    await supabaseAdmin.from('audit_logs').insert({
-      action: 'analysis_failed',
-      resource: 'Analysis API',
-      severity: 'error',
-      metadata: {
-        error: error instanceof Error ? error.message : 'Unknown error',
-      },
-    }).catch(console.error)
+    try {
+      await supabaseAdmin.from('audit_logs').insert({
+        action: 'analysis_failed',
+        resource: 'Analysis API',
+        severity: 'error',
+        metadata: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      })
+    } catch (auditError) {
+      console.error('Failed to log audit:', auditError)
+    }
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

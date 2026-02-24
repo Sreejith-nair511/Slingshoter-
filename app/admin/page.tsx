@@ -1,95 +1,121 @@
-'use client';
+'use client'
 
-import { PublicNavbar } from '@/components/public-navbar';
-import { Footer } from '@/components/layout/footer';
+import { useEffect, useState } from 'react'
+import { useUser } from '@clerk/nextjs'
+import { supabase } from '@/lib/supabase'
+import type { User } from '@/lib/supabase'
+import { RoleBadge } from '@/components/badges/role-badge'
+import { TierBadge } from '@/components/badges/tier-badge'
 
 export default function AdminPage() {
-  const users = [
-    { id: 1, name: 'Alice Johnson', email: 'alice@company.com', role: 'Admin', status: 'Active' },
-    { id: 2, name: 'Bob Smith', email: 'bob@company.com', role: 'Analyst', status: 'Active' },
-    { id: 3, name: 'Charlie Brown', email: 'charlie@company.com', role: 'Viewer', status: 'Inactive' },
-  ];
+  const { user: clerkUser } = useUser()
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+
+  useEffect(() => {
+    loadUsers()
+    loadCurrentUser()
+  }, [clerkUser])
+
+  async function loadCurrentUser() {
+    if (!clerkUser) return
+    
+    const { data } = await supabase
+      .from('users')
+      .select('*')
+      .eq('clerk_id', clerkUser.id)
+      .single()
+    
+    setCurrentUser(data)
+  }
+
+  async function loadUsers() {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false })
+    
+    if (!error && data) {
+      setUsers(data)
+    }
+    setLoading(false)
+  }
+
+  async function updateUserRole(userId: string, newRole: string) {
+    const { error } = await supabase
+      .from('users')
+      .update({ role: newRole })
+      .eq('id', userId)
+    
+    if (!error) {
+      loadUsers()
+    }
+  }
+
+  // Check if current user is admin
+  if (currentUser?.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">Access Denied</h1>
+          <p className="text-zinc-400">You need admin privileges to access this page.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="flex flex-col min-h-screen bg-zinc-950">
-      <PublicNavbar />
-      
-      <main className="flex-1">
-        <section className="py-12 px-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold text-zinc-100 mb-2">Admin Panel</h1>
-              <p className="text-zinc-400">Manage users, roles, and system settings</p>
-            </div>
+    <div className="min-h-screen bg-zinc-950 p-8">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-white mb-8">User Management</h1>
 
-            {/* Activity Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-              {[
-                { label: 'Total Users', value: '24' },
-                { label: 'Active Sessions', value: '12' },
-                { label: 'API Calls (24h)', value: '142.5K' },
-                { label: 'System Uptime', value: '99.98%' },
-              ].map((stat, idx) => (
-                <div key={idx} className="p-6 rounded-lg border border-zinc-800 bg-zinc-900">
-                  <p className="text-xs text-zinc-500 mb-2">{stat.label}</p>
-                  <p className="text-3xl font-bold text-zinc-100">{stat.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* User Management */}
-            <div className="p-8 rounded-lg border border-zinc-800 bg-zinc-900">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-zinc-100">User Management</h3>
-                <button className="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 transition">
-                  Add User
-                </button>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-zinc-700">
-                      <th className="text-left py-3 px-4">Name</th>
-                      <th className="text-left py-3 px-4">Email</th>
-                      <th className="text-left py-3 px-4">Role</th>
-                      <th className="text-left py-3 px-4">Status</th>
-                      <th className="text-left py-3 px-4">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user.id} className="border-b border-zinc-700 hover:bg-zinc-800/50">
-                        <td className="py-3 px-4 text-zinc-300">{user.name}</td>
-                        <td className="py-3 px-4 text-zinc-400 text-xs">{user.email}</td>
-                        <td className="py-3 px-4">
-                          <select className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-300">
-                            <option>{user.role}</option>
-                            <option>Admin</option>
-                            <option>Analyst</option>
-                            <option>Viewer</option>
-                          </select>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`text-xs font-medium ${user.status === 'Active' ? 'text-emerald-400' : 'text-zinc-500'}`}>
-                            {user.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <button className="text-blue-500 text-xs hover:text-blue-400 mr-3">Edit</button>
-                          <button className="text-red-500 text-xs hover:text-red-400">Remove</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        {loading ? (
+          <div className="text-white">Loading...</div>
+        ) : (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-zinc-800">
+                <tr>
+                  <th className="text-left p-4 text-zinc-300 font-semibold">Email</th>
+                  <th className="text-left p-4 text-zinc-300 font-semibold">Role</th>
+                  <th className="text-left p-4 text-zinc-300 font-semibold">Badge</th>
+                  <th className="text-left p-4 text-zinc-300 font-semibold">Analyses</th>
+                  <th className="text-left p-4 text-zinc-300 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id} className="border-t border-zinc-800">
+                    <td className="p-4 text-zinc-300">{user.email}</td>
+                    <td className="p-4">
+                      <RoleBadge role={user.role} size="sm" />
+                    </td>
+                    <td className="p-4">
+                      <TierBadge badge={user.badge} size="sm" />
+                    </td>
+                    <td className="p-4 text-zinc-300">{user.analysis_count}</td>
+                    <td className="p-4">
+                      <select
+                        value={user.role}
+                        onChange={(e) => updateUserRole(user.id, e.target.value)}
+                        className="bg-zinc-800 text-white px-3 py-1 rounded border border-zinc-700 text-sm"
+                      >
+                        <option value="student">Student</option>
+                        <option value="researcher">Researcher</option>
+                        <option value="enterprise">Enterprise</option>
+                        <option value="amd_partner">AMD Partner</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </section>
-      </main>
-
-      <Footer />
+        )}
+      </div>
     </div>
-  );
+  )
 }

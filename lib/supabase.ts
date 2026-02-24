@@ -6,16 +6,34 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Server-side client with service role
-export const supabaseAdmin = createClient(
-  supabaseUrl,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
+// DO NOT import this in client components!
+// This will only work in server-side code (API routes, server components, server actions)
+let _supabaseAdmin: ReturnType<typeof createClient> | null = null
+
+export const getSupabaseAdmin = () => {
+  if (!_supabaseAdmin) {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceRoleKey) {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set')
     }
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      serviceRoleKey,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
   }
-)
+  return _supabaseAdmin
+}
+
+// For backwards compatibility - but this should only be used in server-side code
+export const supabaseAdmin = typeof window === 'undefined' 
+  ? getSupabaseAdmin()
+  : supabase // Fallback to regular client on client-side (shouldn't happen)
 
 // Database types
 export interface User {

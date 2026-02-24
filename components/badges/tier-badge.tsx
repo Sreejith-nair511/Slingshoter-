@@ -1,6 +1,6 @@
 'use client'
 
-import { getTierBadgeColor } from '@/lib/user-helpers'
+import { getTierBadgeColor } from '@/lib/user-utils'
 import { Award } from 'lucide-react'
 
 interface TierBadgeProps {

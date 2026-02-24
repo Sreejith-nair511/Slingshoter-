@@ -1,6 +1,6 @@
 'use client'
 
-import { getRoleDisplayName, getRoleBadgeColor } from '@/lib/user-helpers'
+import { getRoleDisplayName, getRoleBadgeColor } from '@/lib/user-utils'
 
 interface RoleBadgeProps {
   role: string

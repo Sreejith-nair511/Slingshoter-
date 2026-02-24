@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ClerkProvider } from '@clerk/nextjs'
 import { QueryProvider } from '@/lib/query-provider'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 const geist = Geist({ 
@@ -66,9 +67,11 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}>
-          <QueryProvider>
-            {children}
-          </QueryProvider>
+          <ThemeProvider>
+            <QueryProvider>
+              {children}
+            </QueryProvider>
+          </ThemeProvider>
           <Analytics />
         </body>
       </html>
