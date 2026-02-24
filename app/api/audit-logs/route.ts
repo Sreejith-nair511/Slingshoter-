@@ -1,26 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { auth } from '@clerk/nextjs/server'
+import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const severity = searchParams.get('severity')
-    
-    const auditLogs = await prisma.auditLog.findMany({
-      where: severity ? { severity } : undefined,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    })
-    
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get audit logs from Supabase
+    const { data: logs, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (error) throw error
+
     return NextResponse.json({
       success: true,
-      data: auditLogs,
+      data: logs || [],
     })
-  } catch (error) {
-    console.error('Fetch Audit Logs Error:', error)
+  } catch (error: any) {
+    console.error('Audit logs error:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch audit logs' },
+      { success: false, error: error.message || 'Failed to fetch audit logs' },
       { status: 500 }
     )
   }

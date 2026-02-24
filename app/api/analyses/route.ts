@@ -1,37 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { auth } from '@clerk/nextjs/server'
+import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const offset = parseInt(searchParams.get('offset') || '0')
-    
-    const analyses = await prisma.analysis.findMany({
-      take: limit,
-      skip: offset,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        claims: true,
-      },
-    })
-    
-    const total = await prisma.analysis.count()
-    
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get user from Supabase
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('clerk_id', userId)
+      .single()
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Get analyses from Supabase
+    const { data: analyses, error } = await supabase
+      .from('analyses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (error) throw error
+
     return NextResponse.json({
       success: true,
       data: analyses,
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
-      },
     })
-  } catch (error) {
-    console.error('Fetch Analyses Error:', error)
+  } catch (error: any) {
+    console.error('Analyses fetch error:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch analyses' },
+      { success: false, error: error.message || 'Failed to fetch analyses' },
       { status: 500 }
     )
   }

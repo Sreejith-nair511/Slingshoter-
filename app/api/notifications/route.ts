@@ -1,48 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { auth } from '@clerk/nextjs/server'
+import { supabase } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const unreadOnly = searchParams.get('unreadOnly') === 'true'
-    
-    const notifications = await prisma.notification.findMany({
-      where: unreadOnly ? { read: false } : undefined,
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    })
-    
-    return NextResponse.json({
-      success: true,
-      data: notifications,
-    })
-  } catch (error) {
-    console.error('Fetch Notifications Error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch notifications' },
-      { status: 500 }
-    )
-  }
-}
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { id, read } = body
-    
-    const notification = await prisma.notification.update({
-      where: { id },
-      data: { read },
-    })
-    
+    // Get user from Supabase
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('clerk_id', userId)
+      .single()
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    // Get notifications from Supabase
+    const { data: notifications, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (error) throw error
+
     return NextResponse.json({
       success: true,
-      data: notification,
+      data: notifications || [],
     })
-  } catch (error) {
-    console.error('Update Notification Error:', error)
+  } catch (error: any) {
+    console.error('Notifications error:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update notification' },
+      { success: false, error: error.message || 'Failed to fetch notifications' },
       { status: 500 }
     )
   }
