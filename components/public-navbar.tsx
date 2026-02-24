@@ -51,18 +51,11 @@ export function PublicNavbar() {
             Dashboard
           </Link>
           <Link
-            href="/amd-benchmark"
-            className={`text-sm font-medium transition-colors hover:text-zinc-300 flex items-center gap-1 ${isActive('/amd-benchmark') ? 'text-red-500' : 'text-zinc-400'}`}
-          >
-            <BarChart3 size={14} />
-            Benchmarks
-          </Link>
-          <Link
             href="/amd-performance"
             className={`text-sm font-medium transition-colors hover:text-zinc-300 flex items-center gap-1 ${isActive('/amd-performance') ? 'text-red-500' : 'text-zinc-400'}`}
           >
             <Zap size={14} />
-            Performance
+            AMD Performance
           </Link>
         </nav>
 

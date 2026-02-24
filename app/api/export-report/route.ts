@@ -1,144 +1,127 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
-import { generatePDFReport } from '@/lib/pdf-generator'
-import { addReportJob } from '@/lib/queue'
-
-const ExportRequestSchema = z.object({
-  analysisId: z.string(),
-  format: z.enum(['pdf', 'json']).default('pdf'),
-  async: z.boolean().default(false),
-})
+import { auth } from '@clerk/nextjs/server'
 
 export async function POST(request: NextRequest) {
   try {
+    const { userId } = await auth()
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = await request.json()
-    const { analysisId, format, async } = ExportRequestSchema.parse(body)
-    
-    // Fetch analysis
-    const analysis = await prisma.analysis.findUnique({
-      where: { id: analysisId },
-      include: { claims: true },
-    })
-    
-    if (!analysis) {
-      return NextResponse.json(
-        { success: false, error: 'Analysis not found' },
-        { status: 404 }
-      )
-    }
-    
-    // If async, queue the job
-    if (async) {
-      const job = await addReportJob({
-        analysisId,
-        format,
-      })
-      
-      return NextResponse.json({
-        success: true,
-        jobId: job.id,
-        status: 'queued',
-        message: 'Report generation queued',
-      })
-    }
-    
-    // Synchronous generation
-    if (format === 'json') {
-      return NextResponse.json({
-        success: true,
-        data: analysis,
-        format: 'json',
-      })
-    }
-    
-    // Generate PDF
-    const pdfPath = await generatePDFReport({
-      id: analysis.id,
-      query: analysis.query,
-      output: analysis.output,
-      confidenceScore: analysis.confidenceScore,
-      reliabilityScore: analysis.reliabilityScore,
-      trustDeviation: analysis.trustDeviation,
-      calibrationIndex: analysis.calibrationIndex,
-      calibrationLevel: analysis.trustDeviation < 10 ? 'balanced' : 
-                        analysis.trustDeviation < 25 ? 'moderate' : 'high',
-      riskLevel: analysis.trustDeviation > 30 ? 'critical' :
-                 analysis.trustDeviation > 20 ? 'high' : 
-                 analysis.trustDeviation > 10 ? 'medium' : 'low',
-      verificationLatency: analysis.verificationLatency,
-      createdAt: analysis.createdAt,
-      claims: analysis.claims.map(c => ({
-        text: c.text,
-        confidence: c.confidence,
-        reliability: c.reliability,
-        verified: c.verified,
-      })),
-    })
-    
-    // Log export
-    await prisma.auditLog.create({
-      data: {
-        action: 'report_exported',
-        resource: `Analysis: ${analysisId}`,
-        severity: 'info',
-        metadata: {
-          format,
-          path: pdfPath,
+    const { type, data } = body
+
+    if (type === 'benchmark') {
+      // Generate benchmark report
+      const { standard, amd, userName } = data
+
+      const reportContent = generateBenchmarkReport(standard, amd, userName)
+
+      // Return as downloadable text file (simplified version)
+      // In production, you would use PDFKit here
+      return new NextResponse(reportContent, {
+        headers: {
+          'Content-Type': 'text/plain',
+          'Content-Disposition': `attachment; filename="benchmark-report-${new Date().toISOString().split('T')[0]}.txt"`,
         },
-      },
-    })
-    
-    return NextResponse.json({
-      success: true,
-      path: pdfPath,
-      format: 'pdf',
-      downloadUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}${pdfPath}`,
-    })
-    
-  } catch (error) {
-    console.error('Export error:', error)
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid request', details: error.errors },
-        { status: 400 }
-      )
+      })
     }
-    
+
+    return NextResponse.json({ error: 'Invalid report type' }, { status: 400 })
+  } catch (error: any) {
+    console.error('Export error:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to export report' },
+      { error: error.message || 'Export failed' },
       { status: 500 }
     )
   }
 }
 
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams
-    const jobId = searchParams.get('jobId')
-    
-    if (!jobId) {
-      return NextResponse.json(
-        { success: false, error: 'Job ID required' },
-        { status: 400 }
-      )
-    }
-    
-    // Get job status from queue
-    const { getJobStatus } = await import('@/lib/queue')
-    const status = await getJobStatus(jobId, 'reports')
-    
-    return NextResponse.json({
-      success: true,
-      ...status,
-    })
-    
-  } catch (error) {
-    console.error('Job status error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to get job status' },
-      { status: 500 }
-    )
+function generateBenchmarkReport(standard: any, amd: any, userName: string): string {
+  const timestamp = new Date().toLocaleString()
+  
+  let report = `
+================================================================================
+                    AMD PERFORMANCE BENCHMARK REPORT
+================================================================================
+
+Generated: ${timestamp}
+User: ${userName}
+
+================================================================================
+                           BENCHMARK RESULTS
+================================================================================
+
+`
+
+  if (standard) {
+    report += `
+STANDARD MODE (CPU-based)
+-------------------------
+Iterations:        ${standard.iterations}
+Avg Latency:       ${standard.avgLatency}ms
+P95 Latency:       ${standard.p95Latency}ms
+Throughput:        ${standard.throughput} req/sec
+Avg Deviation:     ${standard.avgDeviation}%
+Stability Index:   ${standard.stabilityIndex}%
+Memory Usage:      ${standard.memoryUsage}GB
+
+`
   }
+
+  if (amd) {
+    report += `
+AMD ACCELERATED MODE (GPU-optimized)
+------------------------------------
+Iterations:        ${amd.iterations}
+Avg Latency:       ${amd.avgLatency}ms
+P95 Latency:       ${amd.p95Latency}ms
+Throughput:        ${amd.throughput} req/sec
+Avg Deviation:     ${amd.avgDeviation}%
+Stability Index:   ${amd.stabilityIndex}%
+Memory Usage:      ${amd.memoryUsage}GB
+
+`
+  }
+
+  if (standard && amd) {
+    const accelerationFactor = (standard.avgLatency / amd.avgLatency).toFixed(2)
+    const latencyReduction = (((standard.avgLatency - amd.avgLatency) / standard.avgLatency) * 100).toFixed(1)
+    const throughputIncrease = (((amd.throughput - standard.throughput) / standard.throughput) * 100).toFixed(1)
+
+    report += `
+================================================================================
+                        PERFORMANCE COMPARISON
+================================================================================
+
+Acceleration Factor:     ${accelerationFactor}x
+Latency Reduction:       ${latencyReduction}%
+Throughput Increase:     +${throughputIncrease}%
+
+AMD Advantages:
+- ${latencyReduction}% faster inference
+- ${throughputIncrease}% higher throughput
+- Improved parallel processing
+- Better resource utilization
+
+`
+  }
+
+  report += `
+================================================================================
+                              CONCLUSION
+================================================================================
+
+${amd && standard ? `
+AMD GPU acceleration provides a ${(standard.avgLatency / amd.avgLatency).toFixed(2)}x performance improvement
+over standard CPU-based inference, making it ideal for high-throughput
+production workloads and real-time AI applications.
+` : 'Run both benchmarks to see performance comparison.'}
+
+================================================================================
+                    Trust Calibration Layer - AMD Optimized
+================================================================================
+`
+
+  return report
 }

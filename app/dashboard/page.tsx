@@ -15,8 +15,8 @@ import { AccelerationComparison } from '@/components/amd/acceleration-comparison
 import { WhyAMDMatters } from '@/components/amd/why-amd-matters'
 import { EdgeSimulationToggle } from '@/components/amd/edge-simulation-toggle'
 import { PipelineVisualizer, type PipelineStage } from '@/components/analysis/pipeline-visualizer'
-import { ClaimVisualizer } from '@/components/analysis/claim-visualizer'
-import { DeviationGauge } from '@/components/analysis/deviation-gauge'
+import { ClaimVisualizer } from '../../components/analysis/claim-visualizer'
+import { DeviationGauge } from '../../components/analysis/deviation-gauge'
 import { ThemeSwitcher } from '@/components/theme-switcher'
 import { SystemMonitor } from '@/components/system-monitor'
 import { RateLimitDisplay } from '@/components/rate-limit-display'
@@ -190,18 +190,11 @@ export default function DashboardPage() {
             {showAMDPanel && (
               <>
                 <Link
-                  href="/amd-benchmark"
-                  className="flex items-center gap-2 px-4 py-2 bg-red-900/20 border border-red-900/30 text-red-400 rounded hover:bg-red-900/30 transition-colors text-sm"
-                >
-                  <BarChart3 size={16} />
-                  Benchmarks
-                </Link>
-                <Link
                   href="/amd-performance"
                   className="flex items-center gap-2 px-4 py-2 bg-red-900/20 border border-red-900/30 text-red-400 rounded hover:bg-red-900/30 transition-colors text-sm"
                 >
                   <Zap size={16} />
-                  Performance
+                  AMD Performance
                 </Link>
               </>
             )}
