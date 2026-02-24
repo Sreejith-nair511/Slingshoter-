@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -31,7 +31,7 @@ const EXAMPLE_QUERIES = [
   'Mars colonization timeline',
 ]
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { user: clerkUser } = useUser()
   const searchParams = useSearchParams()
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -501,5 +501,17 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-zinc-950 via-zinc-900 to-zinc-950 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   )
 }
